@@ -1,0 +1,15 @@
+{
+  "dependencies": {
+    "express": "^4.17.1"
+  },
+  "name": "server",
+  "version": "1.0.0",
+  "description": "API for react-notion-blog",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
