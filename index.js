@@ -48,7 +48,7 @@ app.get('/articles', async (req, res) => {
     article.image = article.properties.image.url
     article.slug = article.properties.slug.formula.string
     article.tags = article.properties.tags.multi_select
-    article.description = article.properties.description.rich_text[0].plain_text
+    article.description = article.properties.description.rich_text.length > 0 ? article.properties.description.rich_text[0].plain_text : ''
     article.title = article.properties.page.title[0].plain_text
     delete article.properties
     article.tags.map((tag) => {
