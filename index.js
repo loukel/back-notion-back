@@ -41,6 +41,22 @@ app.get('/articles', async (req, res) => {
   })
 
   var articles = response.results
+
+  articles.map((article) => {
+    delete article.object
+    delete article.parent
+    article.image = article.properties.image.url
+    article.slug = article.properties.slug.formula.string
+    article.tags = article.properties.tags.multi_select
+    article.description = article.properties.description.rich_text[0].plain_text
+    article.title = article.properties.page.title[0].plain_text
+    delete article.properties
+    article.tags.map((tag) => {
+      delete tag.id
+    })
+    return article
+  })
+
   res.status(200).send(articles)
 })
 
