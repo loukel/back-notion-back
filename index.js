@@ -6,6 +6,10 @@ const cors = require('cors')
 const {
   Client
 } = require("@notionhq/client")
+const {
+  convertBlockIntoHtml,
+  convertToHTML
+} = require('./blocksToHtml')
 
 dotenv.config()
 const app = express()
@@ -35,7 +39,6 @@ const notion = new Client({
 const databaseId = process.env.NOTION_DATABASE_ID
 
 app.get('/articles', async (req, res) => {
-
   var response = await notion.databases.query({
     database_id: databaseId,
   })
@@ -45,7 +48,7 @@ app.get('/articles', async (req, res) => {
   articles.map((article) => {
     delete article.object
     delete article.parent
-    article.image = article.properties.image.url
+    article.image = article.properties.image && article.properties.image.url
     article.slug = article.properties.slug.formula.string
     article.tags = article.properties.tags.multi_select
     article.description = article.properties.description.rich_text.length > 0 ? article.properties.description.rich_text[0].plain_text : ''
@@ -60,8 +63,43 @@ app.get('/articles', async (req, res) => {
   res.status(200).send(articles)
 })
 
-app.get('/articles/:id', async (req, res) => {
+app.get('/articles/:slug', async (req, res) => {
+  const slug = req.params.slug
 
+  var page = await notion.databases.query({
+    database_id: databaseId,
+    filter: {
+      property: 'slug',
+      text: {
+        equals: slug
+      }
+    }
+  })
+
+  page = page.results[0]
+
+  var blockId = page.id
+
+  var blocks = await notion.blocks.children.list({
+    block_id: blockId,
+  })
+
+  blocks = blocks.results
+
+  const article = {
+    created_time: page.created_time,
+    last_edited_time: page.last_edited_time,
+    archived: page.archived,
+    slug: page.properties.slug.formula.string,
+    image: page.properties.image && page.properties.image.url,
+    tags: page.properties.tags.multi_select, // Format tags with bg color and text color, remove id
+    description: page.properties.description.rich_text[0].plain_text,
+    visibility: page.properties.visibility.select.name,
+    title: page.properties.page.title[0].plain_text,
+    page: convertToHTML(blocks)
+  }
+
+  res.send(article)
 })
 
 app.use((req, res) => {
