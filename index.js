@@ -2,14 +2,17 @@ const express = require('express')
 const morgan = require('morgan')
 const dotenv = require('dotenv')
 const cors = require('cors')
+const ExpressRedisCache = require('express-redis-cache')
 
 const {
   Client
 } = require("@notionhq/client")
 const {
-  convertBlockIntoHtml,
   convertToHTML
 } = require('./blocksToHtml')
+const cache = ExpressRedisCache({
+  expire: 60 * 60 * 24 * 3, // 3 days
+})
 
 dotenv.config()
 const app = express()
@@ -38,7 +41,7 @@ const notion = new Client({
 
 const databaseId = process.env.NOTION_DATABASE_ID
 
-app.get('/articles', async (req, res) => {
+app.get('/articles', cache.route(), async (req, res) => {
   var response = await notion.databases.query({
     database_id: databaseId,
   })
@@ -63,7 +66,7 @@ app.get('/articles', async (req, res) => {
   res.status(200).send(articles)
 })
 
-app.get('/articles/:slug', async (req, res) => {
+app.get('/articles/:slug', cache.route(), async (req, res) => {
   const slug = req.params.slug
 
   var page = await notion.databases.query({
@@ -93,7 +96,7 @@ app.get('/articles/:slug', async (req, res) => {
     slug: page.properties.slug.formula.string,
     image: page.properties.image && page.properties.image.url,
     tags: page.properties.tags.multi_select, // Format tags with bg color and text color, remove id
-    description: page.properties.description.rich_text[0].plain_text,
+    description: page.properties.description.rich_text.length !== 0 && page.properties.description.rich_text[0].plain_text,
     visibility: page.properties.visibility.select.name,
     title: page.properties.page.title[0].plain_text,
     page: convertToHTML(blocks)
@@ -102,6 +105,26 @@ app.get('/articles/:slug', async (req, res) => {
   res.send(article)
 })
 
-app.use((req, res) => {
-  res.sendStatus(404)
+app.delete('/cache', async (req, res) => {
+  cache.get((error, entries) => {
+    if (error) throw error
+
+    entries.forEach((entry, index) => {
+      cache.del(entry.name)
+    })
+  })
+
+  res.sendStatus(200)
+})
+
+app.delete('/cache/articles', async (req, res) => {
+  cache.del('/articles', Function())
+
+  res.sendStatus(200)
+})
+
+app.delete('/cache/articles/:slug', async (req, res) => {
+  cache.del(`/articles/${req.params.slug}`, Function())
+
+  res.sendStatus(200)
 })
