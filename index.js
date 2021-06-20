@@ -112,7 +112,7 @@ app.delete('/cache', async (req, res) => {
     if (error) throw error
 
     entries.forEach((entry, index) => {
-      cache.del(entry.name)
+      cache.del(entry.name, Function())
     })
   })
 
