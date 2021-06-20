@@ -2,7 +2,11 @@ const express = require('express')
 const morgan = require('morgan')
 const dotenv = require('dotenv')
 const cors = require('cors')
+const redis = require("redis")
 const ExpressRedisCache = require('express-redis-cache')
+
+dotenv.config()
+const app = express()
 
 const {
   Client
@@ -11,11 +15,9 @@ const {
   convertToHTML
 } = require('./blocksToHtml')
 const cache = ExpressRedisCache({
-  expire: 60 * 60 * 24 * 3, // 3 days
+  client: redis.createClient(process.env.REDIS_URL),
+  expire: 60 * 60 * 24 * 3 // 3 days
 })
-
-dotenv.config()
-const app = express()
 
 const PORT = process.env.PORT || 3001
 
